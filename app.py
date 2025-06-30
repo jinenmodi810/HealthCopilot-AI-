@@ -5,9 +5,10 @@ import json
 from io import BytesIO
 from xhtml2pdf import pisa
 
-# ----------------
+# -------------------------------------------------------
 # AWS configuration
-# ----------------
+# -------------------------------------------------------
+
 s3_client = boto3.client('s3', region_name="us-east-1")
 dynamodb = boto3.resource('dynamodb', region_name="us-east-1")
 table = dynamodb.Table('prior_auth_requests')
@@ -17,9 +18,17 @@ polly = boto3.client("polly", region_name="us-east-1")
 BUCKET_NAME = "healthcopilot-docs"
 UPLOAD_PREFIX = "uploads/"
 
-st.set_page_config(page_title="HealthCopilot Dashboard", page_icon="🩺", layout="wide")
+# -------------------------------------------------------
+# Streamlit UI configuration
+# -------------------------------------------------------
 
-# Custom CSS
+st.set_page_config(
+    page_title="HealthCopilot Dashboard",
+    page_icon="🩺",
+    layout="wide"
+)
+
+# Custom CSS for styling
 st.markdown("""
     <style>
         .stButton>button {
@@ -47,30 +56,40 @@ st.markdown("""
 st.title("🩺 HealthCopilot - Prior Authorization Dashboard")
 
 st.markdown("""
-Upload a scanned prior authorization form below. It will be sent to **S3**, then processed by Lambda/Textract/Bedrock, with results shown below.
+Upload a scanned prior authorization form below. It will be sent to Amazon S3 and processed by Lambda, Textract, and Bedrock, with results shown below.
 """)
 
-uploaded_file = st.file_uploader("**Upload a Prior Authorization PDF**", type=["pdf"])
+# -------------------------------------------------------
+# File upload
+# -------------------------------------------------------
+
+uploaded_file = st.file_uploader(
+    "**Upload a Prior Authorization PDF**",
+    type=["pdf"]
+)
 
 if uploaded_file:
     file_key = f"{UPLOAD_PREFIX}{uploaded_file.name}"
     try:
         s3_client.upload_fileobj(uploaded_file, BUCKET_NAME, file_key)
-        st.success(f"✅ Uploaded `{uploaded_file.name}` to S3. Processing will begin automatically.")
+        st.success(f"Uploaded `{uploaded_file.name}` to S3. Processing will begin automatically.")
     except Exception as e:
-        st.error(f"❌ Upload failed: {e}")
+        st.error(f"Upload failed: {e}")
 
 st.divider()
-
 st.subheader("📄 All Prior Authorization Requests")
 
-# ---------------------
-# Bedrock recommender
-# ---------------------
+# -------------------------------------------------------
+# Bedrock helper functions
+# -------------------------------------------------------
+
 def bedrock_recommend(missing_fields, context):
+    """
+    Suggests next steps if missing fields are detected, using Bedrock prompt.
+    """
     prompt = f"""
     A prior authorization request is missing the following fields: {', '.join(missing_fields)}.
-    In **one or two sentences only**, please suggest any critical additional information
+    In one or two sentences only, please suggest any critical additional information
     that might be required to complete a prior authorization, ignoring unrelated personal details.
     Context:
     {context}
@@ -85,10 +104,10 @@ def bedrock_recommend(missing_fields, context):
     result = json.loads(response["body"].read())
     return result.get("results", [{}])[0].get("outputText", "No suggestions available.")
 
-# ---------------------
-# Bedrock provider feedback analyzer
-# ---------------------
 def bedrock_feedback(comment):
+    """
+    Uses Bedrock to classify provider comment tone and suggest a response.
+    """
     prompt = f"""
     You are a skilled medical authorization assistant. Analyze this provider comment:
     "{comment}"
@@ -104,10 +123,10 @@ def bedrock_feedback(comment):
     result = json.loads(response["body"].read())
     return result.get("results", [{}])[0].get("outputText", "No suggestions available.")
 
-# ---------------------
-# Bedrock utilization management scoring
-# ---------------------
 def bedrock_utilization_score(diagnosis, suggested_action):
+    """
+    Uses Bedrock to score the medical necessity of the request.
+    """
     prompt = f"""
     You are a medical prior authorization expert.
     Given the diagnosis: "{diagnosis}" and the recommended action: "{suggested_action}",
@@ -125,6 +144,10 @@ def bedrock_utilization_score(diagnosis, suggested_action):
     result = json.loads(response["body"].read())
     return result.get("results", [{}])[0].get("outputText", "No score available.")
 
+# -------------------------------------------------------
+# Table & dashboard rendering
+# -------------------------------------------------------
+
 try:
     response = table.scan()
     items = response.get("Items", [])
@@ -138,7 +161,7 @@ try:
             lambda x: ", ".join(x) if isinstance(x, list) and x else "None"
         )
         df["HealthLake Match"] = df.get("healthlake_match", False).apply(
-            lambda x: "✅ Match" if x else "❌ No Match"
+            lambda x: "Match" if x else "No Match"
         )
 
         def highlight_duplicates(val):
@@ -160,12 +183,12 @@ try:
         form_id = st.selectbox("Select a Form ID to view details", df["form_id"].tolist())
         selected = df[df["form_id"] == form_id].iloc[0]
 
-        st.markdown("### 📝 Prior Authorization Details")
+        st.markdown("### Prior Authorization Details")
 
         if selected['status'] == "duplicate":
             st.markdown("""
                 <div class="duplicate-warning">
-                    ⚠️ This request appears to be a duplicate of a previous submission. Please review carefully.
+                    This request appears to be a duplicate of a previous submission. Please review carefully.
                 </div>
             """, unsafe_allow_html=True)
 
@@ -177,13 +200,14 @@ try:
         **Suggested Action**: {selected['suggested_action']}  
         **Status**: {selected['status']}  
         **Form ID**: `{selected['form_id']}`  
-        **HealthLake Match**: {'✅ Match found in EHR' if selected.get('healthlake_match') else '❌ No match in EHR'}
+        **HealthLake Match**: {'Match found in EHR' if selected.get('healthlake_match') else 'No match in EHR'}
         """)
 
+        # AI suggestions
         if "ai_suggestion" not in st.session_state:
             st.session_state.ai_suggestion = ""
 
-        if st.button("💡 Get AI Suggestions for Missing Fields"):
+        if st.button("Get AI Suggestions for Missing Fields"):
             with st.spinner("Thinking with Bedrock..."):
                 try:
                     suggestion = bedrock_recommend(
@@ -197,8 +221,8 @@ try:
         if st.session_state.ai_suggestion:
             st.chat_message("ai").write(st.session_state.ai_suggestion)
 
-        # Utilization scoring button
-        if st.button("🩺 Get Medical Necessity Score"):
+        # Utilization scoring
+        if st.button("Get Medical Necessity Score"):
             with st.spinner("Scoring with Bedrock..."):
                 try:
                     utilization_result = bedrock_utilization_score(
@@ -207,12 +231,12 @@ try:
                     )
                     st.session_state.utilization_score = utilization_result
                 except Exception as e:
-                    st.error(f"❌ Bedrock scoring failed: {e}")
+                    st.error(f"Bedrock scoring failed: {e}")
 
         if "utilization_score" in st.session_state:
-            st.success(f"**Utilization Score:** {st.session_state.utilization_score}")
+            st.success(f"Medical Necessity Score: {st.session_state.utilization_score}")
 
-        # language selector
+        # Multilingual playback
         language_voice_map = {
             "English - Joanna": ("en", "Joanna"),
             "Hindi - Aditi": ("hi", "Aditi"),
@@ -225,10 +249,9 @@ try:
             list(language_voice_map.keys()),
             index=0
         )
-
         selected_lang_code, selected_voice_id = language_voice_map[selected_language]
 
-        if st.button("🔊 Listen to AI Suggestion"):
+        if st.button("Listen to AI Suggestion"):
             try:
                 text_to_speak = st.session_state.ai_suggestion
                 if selected_lang_code != "en":
@@ -249,6 +272,7 @@ try:
             except Exception as e:
                 st.error(f"Polly/Translate playback failed: {e}")
 
+        # Status progress bar
         st.progress({
             "pending": 0,
             "under_review": 50,
@@ -264,13 +288,13 @@ try:
         )
         comment = st.text_input("Add provider comment for audit trail (optional)")
 
-        if comment and st.button("💬 Analyze Provider Comment"):
+        if comment and st.button("Analyze Provider Comment"):
             with st.spinner("Analyzing provider feedback with Bedrock..."):
                 try:
                     feedback = bedrock_feedback(comment)
-                    st.info(f"**AI Feedback Response Suggestion:** {feedback}")
+                    st.info(f"AI Feedback Response Suggestion: {feedback}")
                 except Exception as e:
-                    st.error(f"❌ Bedrock feedback analyzer failed: {e}")
+                    st.error(f"Bedrock feedback analyzer failed: {e}")
 
         if st.button("Save Status"):
             try:
@@ -293,13 +317,13 @@ try:
                         ":empty_list": []
                     }
                 )
-                st.success(f"✅ Status updated to {new_status} with audit log recorded.")
+                st.success(f"Status updated to {new_status} with audit log recorded.")
                 st.rerun()
             except Exception as e:
-                st.error(f"❌ Failed to update status or audit log: {e}")
+                st.error(f"Failed to update status or audit log: {e}")
 
         if selected.get("audit_log"):
-            st.markdown("### 🕒 Audit Trail")
+            st.markdown("### Audit Trail")
             for entry in selected['audit_log']:
                 with st.expander(f"{entry['timestamp']} — {entry['changed_by']} changed status to {entry['new_status']}"):
                     st.markdown(f"""
@@ -321,19 +345,19 @@ try:
                     <li><b>Suggested Action:</b> {selected['suggested_action']}</li>
                     <li><b>Status:</b> {selected['status']}</li>
                     <li><b>Form ID:</b> {selected['form_id']}</li>
-                    <li><b>HealthLake Match:</b> {'✅ Match found in EHR' if selected.get('healthlake_match') else '❌ No match in EHR'}</li>
+                    <li><b>HealthLake Match:</b> {'Match found in EHR' if selected.get('healthlake_match') else 'No match in EHR'}</li>
                 </ul>
                 """
                 result = BytesIO()
                 pisa.CreatePDF(html_content, dest=result)
                 st.download_button(
-                    label="📄 Download Details as PDF",
+                    label="Download Details as PDF",
                     data=result.getvalue(),
                     file_name=f"prior_auth_{selected['form_id']}.pdf",
                     mime="application/pdf"
                 )
             except Exception as e:
-                st.error(f"❌ Failed to generate PDF: {e}")
+                st.error(f"Failed to generate PDF: {e}")
 
 except Exception as e:
-    st.error(f"❌ DynamoDB error: {e}")
+    st.error(f"DynamoDB error: {e}")
