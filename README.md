@@ -125,7 +125,7 @@ HealthCopilot automates the end-to-end prior authorization workflow with an intu
     - If any required fields are missing, an alert is sent out using Amazon SNS to notify the clinic team.
 7️. Streamlit Dashboard
     - The Streamlit app fetches records from DynamoDB and displays them on a user-friendly dashboard.
-    - Staff can view missing fields, provider details, HealthLake match status, and even request AI-generated suggestions on how to fix 	        incomplete submissions.
+    - Staff can view missing fields, provider details, HealthLake match status, and even request AI-generated suggestions on how to fix 	            incomplete submissions.
 8️. Voice Playback & Multilingual Support
     - With Amazon Translate and Polly, staff can listen to AI suggestions in multiple languages for accessibility.
 9️. Audit Trail & Status Updates
