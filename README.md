@@ -33,7 +33,7 @@ Given the following extracted text from a healthcare prior authorization form, i
 
 ## AWS Services Used
 
-![alt text](Services.png)
+![alt text](/images/Services.png)
 
 ## Architecture Diagram
 
