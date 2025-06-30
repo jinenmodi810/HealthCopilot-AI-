@@ -33,11 +33,11 @@ Given the following extracted text from a healthcare prior authorization form, i
 
 ## AWS Services Used
 
-![alt text](/images/Services.png)
+![alt text](images/Services.png)
 
 ## Architecture Diagram
 
-![alt text](Architecture.png)
+![alt text](images/Architecture.png)
 
 
 ## Architecture Explained
@@ -55,7 +55,7 @@ Given the following extracted text from a healthcare prior authorization form, i
 
 ## Project Structure
 
-![alt text](Project_Struc.png)
+![alt text](images/Project_Struc.png)
 
 
 ##  Setup Instructions
