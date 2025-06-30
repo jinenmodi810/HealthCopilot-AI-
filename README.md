@@ -22,14 +22,14 @@ HealthCopilot uses advanced generative AI to optimize healthcare document workfl
     -   Suggests next best actions based on document content
 
 ## AI Prompt Example (used with Bedrock)
-```
+
 Given the following extracted text from a healthcare prior authorization form, identify:
     1. Insurance Provider
     2. Urgency Level (Routine/Urgent/Unknown)
     3. NPI Number
     4. Whether required fields are missing
     5. Suggested next action
-```
+
 
 ## AWS Services Used
 
@@ -39,8 +39,9 @@ Given the following extracted text from a healthcare prior authorization form, i
 
 ![alt text](image-1.png)
 
-```
+
 ## Architecture Explained
+
     -   Amazon S3 — receives the uploaded prior authorization forms (PDFs)
     -   S3 triggers Lambda — to start the processing flow automatically
     -   AWS Lambda — coordinates Textract (OCR), Bedrock (AI prompts), HealthLake (EHR search), and SNS alerts
@@ -51,7 +52,7 @@ Given the following extracted text from a healthcare prior authorization form, i
     -   Amazon EventBridge (if included) — could schedule reminders for stale requests
     -   Amazon HealthLake — matches patient data to cross-check missing info
     -   Streamlit — provides a web-based dashboard for users to monitor the status
-```
+=
 
 ## Project Structure
 
@@ -61,7 +62,7 @@ Given the following extracted text from a healthcare prior authorization form, i
 ##  Setup Instructions
 
 Follow these steps to deploy HealthCopilot end-to-end:
-```
+
     1. Clone the repo:
             git clone https://github.com/jinenmodi810/healthcopilot.git
             cd healthcopilot
@@ -103,11 +104,10 @@ Follow these steps to deploy HealthCopilot end-to-end:
 	10.	Test End-to-End
         •	Upload templates/sample_prior_auth.pdf through the Streamlit dashboard
         •	Confirm results appear, alerts go out, and the DynamoDB record is created.
-```
+
 
 ##  How It Works
-How It Works
-```
+
 HealthCopilot automates the end-to-end prior authorization workflow with an intuitive serverless architecture:
 
     1️. Document Upload
@@ -143,7 +143,6 @@ HealthCopilot automates the end-to-end prior authorization workflow with an intu
     9️. Audit Trail & Status Updates
 	    •	Admins can update the authorization status and leave comments, which are logged in DynamoDB.
 	    •	All updates are reflected in real-time on the dashboard.
-```
 
 ##  Demo Video
 [Watch the demo here](https://youtu.be/example)
