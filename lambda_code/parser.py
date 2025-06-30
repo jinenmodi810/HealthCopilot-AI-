@@ -2,9 +2,29 @@ import boto3
 import json
 import re
 
+# -------------------------------------------------------
+# Initialize Bedrock client
+# -------------------------------------------------------
 bedrock = boto3.client(service_name="bedrock-runtime", region_name="us-east-1")
 
+# -------------------------------------------------------
+# Process extracted text with Bedrock
+# -------------------------------------------------------
+
 def process_text(raw_text):
+    """
+    Processes the raw text from Textract using Bedrock
+    to extract key prior authorization fields:
+    - provider
+    - npi
+    - urgency
+    - missing_fields
+    - suggested_action
+
+    Returns a dictionary with these fields populated, or
+    a default fallback if parsing fails.
+    """
+
     messages = [
         {
             "role": "user",
@@ -38,11 +58,11 @@ Form text:
         )
 
         response_body = json.loads(response['body'].read())
-        print("🧠 Bedrock raw output:", response_body)
+        print("Bedrock raw output:", response_body)
 
         completion = response_body["content"][0]["text"]
 
-        # extract only the first JSON object with a regex
+        # extract the first JSON object from the Claude output
         match = re.search(r"\{.*?\}", completion, re.DOTALL)
         if match:
             clean_json = match.group(0)
@@ -59,7 +79,7 @@ Form text:
             }
 
     except Exception as e:
-        print("❌ Bedrock parsing error:", e)
+        print(f"Bedrock parsing error: {e}")
         return {
             "provider": None,
             "npi": None,
