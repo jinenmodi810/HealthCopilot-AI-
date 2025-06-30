@@ -42,17 +42,17 @@ Given the following extracted text from a healthcare prior authorization form, i
 
 ## Architecture Explained
 
-    -   Amazon S3 — receives the uploaded prior authorization forms (PDFs)
-    -   S3 triggers Lambda — to start the processing flow automatically
-    -   AWS Lambda — coordinates Textract (OCR), Bedrock (AI prompts), HealthLake (EHR search), and SNS alerts
-    -   Amazon Textract — extracts the text fields from the PDF
-    -   Amazon Bedrock — uses Claude/Mistral to analyze fields, detect missing data, and suggest next actions
-    -   Amazon DynamoDB — stores the structured parsed results and audit logs
-    -   Amazon Polly + Translate — reads the suggestions aloud in multiple languages
-    -   Amazon EventBridge (if included) — could schedule reminders for stale requests
-    -   Amazon HealthLake — matches patient data to cross-check missing info
-    -   Streamlit — provides a web-based dashboard for users to monitor the status
-=
+- Amazon S3 — receives the uploaded prior authorization forms (PDFs)
+- S3 triggers Lambda — to start the processing flow automatically
+- AWS Lambda — coordinates Textract (OCR), Bedrock (AI prompts), HealthLake (EHR search), and SNS alerts
+- Amazon Textract — extracts the text fields from the PDF
+- Amazon Bedrock — uses Claude/Mistral to analyze fields, detect missing data, and suggest next actions
+- Amazon DynamoDB — stores the structured parsed results and audit logs
+- Amazon Polly + Translate — reads the suggestions aloud in multiple languages
+- Amazon EventBridge (if included) — could schedule reminders for stale requests
+- Amazon HealthLake — matches patient data to cross-check missing info
+- Streamlit — provides a web-based dashboard for users to monitor the status
+
 
 ## Project Structure
 
@@ -60,50 +60,7 @@ Given the following extracted text from a healthcare prior authorization form, i
 
 
 ##  Setup Instructions
-
 Follow these steps to deploy HealthCopilot end-to-end:
-
-    1. Clone the repo:
-            git clone https://github.com/jinenmodi810/healthcopilot.git
-            cd healthcopilot
-    2.	Deploy Lambda Functions
-        •	Use the AWS Lambda console to upload lambda_code/handler.py (or zip the entire folder including utils if you have dependencies).
-        •	Set the handler to lambda_code.handler.lambda_handler.
-        •	Attach an IAM role with Textract, Bedrock, Comprehend, HealthLake, DynamoDB, SNS, and S3 permissions.
-        •	Set the S3 trigger for the healthcopilot-docs bucket, prefix uploads/.
-	3.	Set Up DynamoDB
-        •	Create a table named prior_auth_requests with primary key: form_id (String)
-        •	No secondary indexes are required initially.
-	4.	Configure Amazon S3
-        •	Create a bucket healthcopilot-docs.
-        •	Add a folder prefix: uploads/.
-        •	Configure event triggers to point to your Lambda function.
-	5.	Configure Amazon SNS (or Twilio)
-        •	Set up a topic (e.g., healthcopilot-alerts)
-        •	Subscribe your test email or phone number.
-        •	Add the topic ARN to your Lambda code (SNS_TOPIC_ARN).
-	6.	(Optional) Set up Amazon EventBridge
-	    •   Create a rule to run eventbridge/check_status.py every few days to check for stale requests.
-    7.	Streamlit Frontend
-        •	Install dependencies locally:
-                cd streamlit_app
-                pip install -r requirements.txt
-    8.  Run the Streamlit app:
-            streamlit run app.py
-            The dashboard will be available on http://localhost:8501
-    9.	Permissions
-        •	Ensure your Lambda IAM role includes:
-        •	AmazonTextractFullAccess
-        •	AmazonBedrockFullAccess
-        •	AmazonDynamoDBFullAccess
-        •	AmazonSNSFullAccess
-        •	AmazonS3FullAccess
-        •	AmazonHealthLakeFullAccess
-        •	AmazonComprehendFullAccess
-        •	This is critical so all modules work seamlessly.
-	10.	Test End-to-End
-        •	Upload templates/sample_prior_auth.pdf through the Streamlit dashboard
-        •	Confirm results appear, alerts go out, and the DynamoDB record is created.
 
 
 ##  How It Works
