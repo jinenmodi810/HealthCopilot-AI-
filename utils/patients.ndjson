@@ -1,0 +1,1 @@
+{"resourceType":"Patient","id":"example-patient-1","name":[{"family":"Doe","given":["John"]}],"gender":"male","birthDate":"1985-07-12","address":[{"line":["123 Main Street"],"city":"New York","state":"NY","postalCode":"10001"}]}

@@ -2,7 +2,8 @@ import json
 import boto3
 import os
 import uuid
-import numpy as np
+import requests  # new
+
 from utils import textract_helper
 from lambda_code import parser
 
@@ -10,41 +11,35 @@ from lambda_code import parser
 s3 = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 sns_client = boto3.client('sns')
+table = dynamodb.Table('prior_auth_requests')
 bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
 
-table = dynamodb.Table('prior_auth_requests')
 SNS_TOPIC_ARN = "arn:aws:sns:us-east-1:590183971264:healthcopilot-alerts"
+HEALTHLAKE_ENDPOINT = "https://healthlake.us-east-1.amazonaws.com/datastore/65e74e6cd81e2afd862c4e9dc0b159c1/r4"
 
-def get_embedding(text):
-    body = json.dumps({
-        "inputText": text
-    })
+# -------------------------------------------------------
+# helper function to check HealthLake for patient match
+# -------------------------------------------------------
+def query_healthlake_patient(name):
     try:
-        print(f"📌 Sending to Titan model: {body}")
-        response = bedrock.invoke_model(
-            modelId="amazon.titan-embed-text-v1",
-            body=body,
-            contentType="application/json",
-            accept="application/json"
-        )
-        raw = response["body"].read()
-        print(f"📌 Titan raw response: {raw}")
-        parsed = json.loads(raw)
-        return parsed.get("embedding", [])
+        url = f"{HEALTHLAKE_ENDPOINT}/Patient?name={name}"
+        print(f"📡 Querying HealthLake at: {url}")
+        response = requests.get(url)
+        response.raise_for_status()
+        result = response.json()
+        if "entry" in result and len(result["entry"]) > 0:
+            print(f"✅ HealthLake match found for {name}")
+            return True
+        else:
+            print(f"❌ No match found in HealthLake for {name}")
+            return False
     except Exception as e:
-        print(f"❌ Titan embedding EXCEPTION (will re-raise): {e}")
-        raise
+        print(f"❌ HealthLake query failed: {e}")
+        return False
 
-def cosine_similarity(vec1, vec2):
-    vec1 = np.array(vec1)
-    vec2 = np.array(vec2)
-    dot = np.dot(vec1, vec2)
-    norm1 = np.linalg.norm(vec1)
-    norm2 = np.linalg.norm(vec2)
-    if norm1 == 0 or norm2 == 0:
-        return 0
-    return dot / (norm1 * norm2)
-
+# -------------------------------------------------------
+# main Lambda
+# -------------------------------------------------------
 def lambda_handler(event, context):
     print(f"📥 Event received:\n{json.dumps(event)}")
 
@@ -68,15 +63,13 @@ def lambda_handler(event, context):
 
     print(f"✅ Parsed Result:\n{json.dumps(parsed_result)}")
 
-    # Titan embedding
-    try:
-        embedding = get_embedding(raw_text)
-        print(f"✅ Got Titan embedding of length {len(embedding)}")
-    except Exception as e:
-        print(f"❌ Titan embedding error (final fail): {e}")
-        embedding = []
+    # new - query HealthLake to cross-check patient name if available
+    patient_name = parsed_result.get("patient_name")
+    hl_match = False
+    if patient_name:
+        hl_match = query_healthlake_patient(patient_name)
 
-    # unique form_id as object key
+    # unique form_id using object key
     form_id = object_key
 
     # store in DynamoDB
@@ -89,9 +82,9 @@ def lambda_handler(event, context):
                 "urgency": parsed_result.get("urgency", "unknown"),
                 "missing_fields": parsed_result.get("missing_fields", []),
                 "suggested_action": parsed_result.get("suggested_action", ""),
+                "healthlake_match": hl_match,   # new field to store match flag
                 "status": "pending",
                 "created_at": context.aws_request_id,
-                "embedding": embedding,
                 "audit_log": [
                     {
                         "changed_by": "system",
@@ -106,26 +99,16 @@ def lambda_handler(event, context):
     except Exception as e:
         print(f"❌ DynamoDB storage error: {e}")
 
-    # similarity check
+    # check HealthLake connectivity
     try:
-        previous_items = table.scan().get("Items", [])
-        for item in previous_items:
-            if item["form_id"] == form_id:
-                continue  # skip self
-            existing_embedding = item.get("embedding")
-            if existing_embedding:
-                sim = cosine_similarity(embedding, existing_embedding)
-                if sim > 0.9:
-                    print(f"⚠️ Duplicate detected with {item['form_id']} similarity={sim:.2f}")
-                    table.update_item(
-                        Key={"form_id": form_id},
-                        UpdateExpression="SET #s = :s",
-                        ExpressionAttributeNames={"#s": "status"},
-                        ExpressionAttributeValues={":s": "duplicate"}
-                    )
-                    break
+        healthlake = boto3.client("healthlake")
+        datastore_id = "65e74e6cd81e2afd862c4e9dc0b159c1"
+        describe = healthlake.describe_fhir_datastore(
+            DatastoreId=datastore_id
+        )
+        print(f"✅ HealthLake store status: {describe['DatastoreProperties']['DatastoreStatus']}")
     except Exception as e:
-        print(f"❌ Similarity check error: {e}")
+        print(f"❌ HealthLake connectivity error: {e}")
 
     # SNS alert if missing fields
     missing_fields = parsed_result.get("missing_fields", [])

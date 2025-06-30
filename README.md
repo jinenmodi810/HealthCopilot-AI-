@@ -1,29 +1,27 @@
 # HealthCopilot: Serverless Prior Authorization Tracker for U.S. Patients
 
-## 🩺 Overview
-HealthCopilot is a serverless, AI-powered application built using AWS Lambda to help U.S. patients and healthcare clinics track insurance prior authorization requests. It automates document processing, detects missing information, and sends timely alerts via SMS or email.
+## Overview
+HealthCopilot is a serverless, AI-powered application built with AWS Lambda to help U.S. patients and healthcare clinics efficiently track insurance prior authorization requests. It automates document parsing, validates missing information, and proactively sends alerts through email.
 
-## 🚀 Features
-- Upload scanned prior auth forms to S3
+## Features
+Upload scanned prior authorization forms directly to Amazon S3
 - Automatically extract key fields using Amazon Textract
-- Use Amazon Bedrock (Claude/Mistral) to analyze extracted text
-- Classify provider, urgency, and detect missing fields using LLM prompts
-- Store structured data in DynamoDB
-- Send alerts using SNS or Twilio for missing/incomplete submissions
-- Schedule reminders using Amazon EventBridge
+- Analyze extracted text with Amazon Bedrock (Claude/Mistral)
+- Classify provider, urgency, and detect missing fields through LLM prompts
+- Store clean structured data in DynamoDB
+- Notify clinics with Amazon SNS or Twilio for incomplete submissions
+- Schedule automatic follow-ups with Amazon EventBridge
 
-## 🧠 AI/ML Capabilities
-HealthCopilot leverages AI to enhance healthcare workflow automation:
+## AI/ML Capabilities
+HealthCopilot uses advanced generative AI to optimize healthcare document workflows:
+    -   Amazon Textract: extracts raw text from scanned forms
+    -   Amazon Bedrock (Claude/Mistral):
+    -   Identifies missing fields in the prior authorization form
+    -   Classifies urgency (Routine, Urgent, Unknown)
+    -   Extracts or validates insurance provider
+    -   Suggests next best actions based on document content
 
-- **Amazon Textract** extracts raw text from scanned documents.
-- **Amazon Bedrock (Claude/Mistral)** is used to:
-  - Identify missing fields in the authorization form
-  - Classify urgency (Routine/Urgent)
-  - Extract or validate insurance provider
-  - Suggest next actions based on form content
-- [Optional] **Amazon Comprehend** can analyze patient responses to detect intent (e.g., "already submitted", "cancel", etc.)
-
-## 🔁 AI Prompt Example (used with Bedrock)
+## AI Prompt Example (used with Bedrock)
 ```
 Given the following extracted text from a healthcare prior authorization form, identify:
 1. Insurance Provider
@@ -33,19 +31,14 @@ Given the following extracted text from a healthcare prior authorization form, i
 5. Suggested next action
 ```
 
-## 🛠️ Architecture Diagram
-![Architecture](link-to-uploaded-diagram.png)
+## Architecture Diagram
 
-## ⚙️ AWS Services Used
-| Service        | Purpose                                              |
-|----------------|-------------------------------------------------------|
-| AWS Lambda     | Core logic for processing and alerts                 |
-| Amazon S3      | Store uploaded documents                             |
-| Amazon Textract| Extract text fields from scanned forms               |
-| Amazon Bedrock | LLM-based AI prompt processing (Claude/Mistral)     |
-| DynamoDB       | Store structured metadata from parsed forms          |
-| Amazon SNS     | Send notifications (can be replaced by Twilio)       |
-| Amazon EventBridge | Schedule periodic follow-ups                   |
+
+
+## AWS Services Used
+
+![alt text](image.png)
+
 
 ## 📂 Project Structure
 ```
