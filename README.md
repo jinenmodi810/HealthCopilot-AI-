@@ -37,7 +37,7 @@ Given the following extracted text from a healthcare prior authorization form, i
 
 ## Architecture Diagram
 
-![alt text](images/Architecture.png)
+![alt text](Images/Architecture.png)
 
 
 ## Architecture Explained
@@ -55,7 +55,7 @@ Given the following extracted text from a healthcare prior authorization form, i
 
 ## Project Structure
 
-![alt text](images/Project_Struc.png)
+![alt text](Images/Project_Struc.png)
 
 
 ##  Setup Instructions
@@ -141,7 +141,7 @@ HealthCopilot automates the end-to-end prior authorization workflow with an intu
    - All updates are reflected in real-time on the dashboard.
 
 ## Demo Video
-[Watch the demo here](https://youtu.be/example)
+[Watch the demo here](https://www.youtube.com/watch?v=-PKllslJiLE)
 
 ## License
 MIT License
